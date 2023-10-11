@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Linq.Expressions;
 using System.Net.Http;
@@ -34,6 +35,27 @@ namespace NewSpecificationLib
             responceRes.Wait();
 
             return JsonConvert.DeserializeObject<ResponseType>(responceRes.Result);
+        }
+
+        public static ResponseType PatchData<ResponseType, T>(string uri, T serializableObject, HttpClient client)
+        {
+            var jsonString = JsonConvert.SerializeObject(serializableObject);
+            return PatchJson<ResponseType>(uri, jsonString, client);
+        }
+
+        private static ResponseType PatchJson<ResponseType>(string uri, string jsonString, HttpClient client)
+        {
+            var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri)
+            {
+                Content = new StringContent(jsonString, Encoding.UTF8, "application/json")
+            };
+
+            var response = client.SendAsync(request);
+            response.Wait();
+            var responseRes = response.Result.Content.ReadAsStringAsync();
+            responseRes.Wait();
+
+            return JsonConvert.DeserializeObject<ResponseType>(responseRes.Result);
         }
     }
 }
