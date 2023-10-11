@@ -23,5 +23,10 @@ namespace NewSpecificationLib
         {
             return RestApi.PostData<ResponseType, T>(uri, serializableObject, Client);
         }
+
+        protected ResponseType PatchData<ResponseType, T>(string uri, T serializableObject)
+        {
+            return RestApi.PatchData<ResponseType, T>(uri, serializableObject, Client);
+        }
     }
 }

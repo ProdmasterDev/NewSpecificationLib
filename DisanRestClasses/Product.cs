@@ -31,7 +31,7 @@ namespace NewSpecificationLib.DisanRestClasses
         public string ManufacturerName { get; set; }
 
         [JsonProperty("vendorCode")]
-        public int? VendorCode { get; set; }
+        public string VendorCode { get; set; } = "";
 
         [JsonProperty("name")]
         public string Name { get; set; }

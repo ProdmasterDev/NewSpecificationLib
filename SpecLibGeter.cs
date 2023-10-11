@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿using NewSpecificationLib.RestClasses;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -12,20 +14,52 @@ namespace NewSpecificationLib
     public class SpecLibGeter: CommonClient, ISpecLibGetter
     {
         public List<int> CurNewSpecIds { get; set; } = new List<int>();
-        public SpecLibGeter() : base("https://partner.prodmasterpro.ru:5443/")
+        public List<Specification> SpecsToUpdate { get; set; } = new List<Specification>();
+        private List<ReturnClasses.Specification> _specificationsToVerify { get; set; } = new List<ReturnClasses.Specification>();
+    public SpecLibGeter() : base("https://partner.prodmasterpro.ru:5443/")
         {
             ServicePointManager
             .ServerCertificateValidationCallback +=
             (sender, cert, chain, sslPolicyErrors) => true;
         }
 
+        public void SetTestMode()
+        {
+            ServerUrl = "http://localhost:5656/";
+        }
+        public void SetTestModeLocal(string url)
+        {
+            ServerUrl = url;
+        }
+
+        public void TestInitSpecsToVerify(long id)
+        {
+            _specificationsToVerify.Add(new ReturnClasses.Specification() { Id = id });
+        }
+
         public ArrayList GetNewSpecs()
         {
-            var getNewSpecsUri = ServerUrl + "api/specifications";
-            var res = GetData<List<RestClasses.Specification>>(getNewSpecsUri);
-            CurNewSpecIds.Clear();
-            foreach (var spec in res) { CurNewSpecIds.Add(spec.Id); }
-            return PrepareDisanArr(res);
+            try
+            {
+                var getNewSpecsUri = ServerUrl + "api/specifications";
+                var res = GetData<List<RestClasses.Specification>>(getNewSpecsUri);
+                CurNewSpecIds.Clear();
+                foreach (var spec in res)
+                {
+                    _specificationsToVerify.Add(new ReturnClasses.Specification() { Id = spec.Id });
+                    foreach (var p in spec.Products)
+                    {
+
+                        _specificationsToVerify.Last().Products.Add(new ReturnClasses.Product() { Id = p.Id });
+                    }
+                }
+                foreach (var spec in res) { CurNewSpecIds.Add(spec.Id); }
+                return PrepareDisanArr(res);
+            }
+            catch (Exception)
+            {
+                return new ArrayList();
+            }
         }
 
         public ArrayList PrepareDisanArr(List<RestClasses.Specification> list)
@@ -40,6 +74,7 @@ namespace NewSpecificationLib
                     ExpiresAt = spec.ExpiresAt,
                     UserId = spec.UserId,
                     ProvidersName = spec.ProvidersName,
+                    CustomId = spec.CustomId,
                     Inn = spec.Inn,
                     Email = spec.Email,
                     Phone = spec.Phone,
@@ -59,14 +94,35 @@ namespace NewSpecificationLib
             return res;
         }
 
+        public void AddSpecificationToPatchList(long id, long disanId, long customId)
+        {
+            var specification = _specificationsToVerify.FirstOrDefault(s => s.Id == id);
+            if (specification != null)
+            {
+                specification.DisanId = disanId;
+                specification.CustomId = customId;
+                specification.IsVerified = true;
+            }
+        }
+
+        public void AddProductToPatchList(long id, long productId, long disanId)
+        {
+            var specification = _specificationsToVerify.FirstOrDefault(s => s.Id == id);
+            if (specification != null)
+            {
+                var product = specification.Products.FirstOrDefault(p => p.Id == productId);
+                if(product != null)
+                {
+                    product.DisanId = disanId;
+                    product.IsVerified = true;
+                }
+            }
+        }
+
         public string PatchNewSpecs()
         {
-            //var procSpecIds = new List<int>();
-            //foreach (DisanRestClasses.Specification spec in CurNewSpecs)
-            //{ procSpecIds.Add(spec.Id); }
-
             var patchNewSpecsUri = ServerUrl + "api/specificationsToVerify";
-            return PostData<string, List<int>>(patchNewSpecsUri, CurNewSpecIds);
+            return PatchData<string, List<ReturnClasses.Specification>>(patchNewSpecsUri, _specificationsToVerify);
         }
     }
 }

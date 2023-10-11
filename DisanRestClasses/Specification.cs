@@ -27,6 +27,8 @@ namespace NewSpecificationLib.DisanRestClasses
 
         [JsonProperty("providersName")]
         public string ProvidersName { get; set; }
+        [JsonProperty("customId")]
+        public int CustomId { get; set; }
 
         [JsonProperty("inn")]
         public string Inn { get; set; }
